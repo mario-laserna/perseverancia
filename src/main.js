@@ -4,8 +4,7 @@ import { createTerrain, heightAt } from './terrain.js';
 import { createRocks } from './rocks.js';
 import { createSky, HORIZON_COLOR } from './sky.js';
 import { createMoons } from './moons.js';
-
-const EYE_HEIGHT = 1.7;
+import { createRover } from './rover.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -32,7 +31,7 @@ const sun = new THREE.DirectionalLight(0xffd0a0, 3.2);
 sun.castShadow = true;
 sun.shadow.mapSize.set(4096, 4096);
 const sc = sun.shadow.camera;
-sc.left = -70; sc.right = 70; sc.top = 70; sc.bottom = -70;
+sc.left = -40; sc.right = 40; sc.top = 40; sc.bottom = -40;
 sc.near = 1; sc.far = 600;
 sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.06;
@@ -74,41 +73,49 @@ const dust = (() => {
 })();
 scene.add(dust);
 
-// Cámara a altura humana, mirando hacia el sol con ligera inclinación hacia arriba.
+// Cámara orbital centrada en el rover: arrastra con el ratón para verlo en 360°,
+// rueda para acercar. Al conducir sin tocar el ratón vuelve sola detrás del rover.
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 6000);
-const ground0 = heightAt(0, 0);
-camera.position.set(0, ground0 + EYE_HEIGHT, 0);
-const pitch = THREE.MathUtils.degToRad(6), yaw = THREE.MathUtils.degToRad(0);
-const lookDir = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
+const rover = createRover(scene);
+const LOOK_HEIGHT = 1.3;
+const CHASE_OFFSET = new THREE.Vector3(0, 2.4, 8); // detrás (+Z local) y arriba
+const yAxis = new THREE.Vector3(0, 1, 0);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.copy(camera.position).addScaledVector(lookDir, 10);
 controls.enableDamping = true;
-controls.dampingFactor = 0.06;
-controls.minDistance = 2;
-controls.maxDistance = 40;
-controls.maxPolarAngle = Math.PI * 0.58;
+controls.dampingFactor = 0.08;
+controls.enablePan = false;
+controls.minDistance = 4;
+controls.maxDistance = 60;
+controls.maxPolarAngle = Math.PI * 0.53;
+controls.target.copy(rover.object.position).y += LOOK_HEIGHT;
+camera.position.copy(CHASE_OFFSET).add(controls.target);
 controls.update();
 
-let lastInteraction = -Infinity;
-controls.addEventListener('start', () => { lastInteraction = Infinity; });
-controls.addEventListener('end', () => { lastInteraction = performance.now(); });
+let dragging = false, lastInteraction = -Infinity;
+controls.addEventListener('start', () => { dragging = true; });
+controls.addEventListener('end', () => { dragging = false; lastInteraction = performance.now(); });
 
-// Movimiento automático leve: balanceo lento de la vista cuando nadie toca los controles.
-const yAxis = new THREE.Vector3(0, 1, 0);
-const offset = new THREE.Vector3();
-let swayPrev = 0;
-function sway(t) {
-  const idle = performance.now() - lastInteraction > 4000;
-  const s = idle ? Math.sin(t * 0.06) * 0.07 : swayPrev;
-  if (s !== swayPrev) {
-    offset.subVectors(camera.position, controls.target).applyAxisAngle(yAxis, s - swayPrev);
+const prevTarget = controls.target.clone();
+const offset = new THREE.Vector3(), chase = new THREE.Vector3();
+function placeCamera(dt) {
+  // El objetivo sigue al rover y la cámara se desplaza con él, conservando el ángulo elegido.
+  controls.target.copy(rover.object.position).y += LOOK_HEIGHT;
+  camera.position.add(offset.subVectors(controls.target, prevTarget));
+  prevTarget.copy(controls.target);
+
+  const driving = Math.abs(rover.state.speed) > 0.1;
+  if (driving && !dragging && performance.now() - lastInteraction > 1500) {
+    offset.subVectors(camera.position, controls.target);
+    chase.copy(CHASE_OFFSET).setLength(offset.length()).applyAxisAngle(yAxis, rover.state.heading);
+    offset.lerp(chase, Math.min(1, dt * 1.5));
     camera.position.copy(controls.target).add(offset);
-    swayPrev = s;
   }
-  const minY = heightAt(camera.position.x, camera.position.z) + 1.2;
+  controls.update();
+  const minY = heightAt(camera.position.x, camera.position.z) + 0.8;
   if (camera.position.y < minY) camera.position.y = minY;
 }
+window.__rover = rover;
 
 const clock = new THREE.Clock();
 const wind = new THREE.Vector3(1.2, 0.05, 0.4);
@@ -116,12 +123,12 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.1);
   const t = clock.elapsedTime;
 
-  sway(t);
-  controls.update();
+  rover.update(dt);
+  placeCamera(dt);
 
-  // El sol y su caja de sombras siguen a la cámara.
-  sun.target.position.copy(controls.target);
-  sun.position.copy(controls.target).addScaledVector(sunDir, 300);
+  // El sol y su caja de sombras siguen al rover.
+  sun.target.position.copy(rover.object.position);
+  sun.position.copy(rover.object.position).addScaledVector(sunDir, 300);
 
   // Polvo arrastrado por el viento, envuelto en una caja alrededor de la cámara.
   const p = dust.geometry.attributes.position;
@@ -138,7 +145,7 @@ function animate() {
   p.needsUpdate = true;
 
   renderer.render(scene, camera);
-  window.__sceneReady = true;
+  if (rover.state.loaded) window.__sceneReady = true;
 }
 renderer.setAnimationLoop(animate);
 

@@ -1,0 +1,16 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+await p.goto('http://localhost:5173/');
+await p.waitForFunction(() => window.__sceneReady, null, { timeout: 30000 });
+const before = await p.evaluate(() => window.__rover.object.position.toArray());
+await p.keyboard.down('KeyW'); await p.waitForTimeout(4000);
+await p.evaluate(() => { for (let i = 0; i < 300; i++) window.__rover.update(1 / 60); });
+await p.keyboard.down('KeyA'); await p.evaluate(() => { for (let i = 0; i < 200; i++) window.__rover.update(1 / 60); }); await p.keyboard.up('KeyA');
+await p.evaluate(() => { for (let i = 0; i < 120; i++) window.__rover.update(1 / 60); });
+await p.waitForTimeout(2000); await p.keyboard.up('KeyW'); await p.waitForTimeout(12000);
+console.log('huellas', await p.evaluate(() => window.__rover.object.parent.children.find((o) => o.isInstancedMesh && o.count < 4001 && o.geometry.type === 'PlaneGeometry')?.count));
+const after = await p.evaluate(() => [window.__rover.object.position.toArray(), window.__rover.state.heading]);
+console.log('antes', before, 'después', after);
+await p.screenshot({ path: 'screenshots/drive.png' });
+await b.close();

@@ -41,6 +41,7 @@ const browser = await chromium.launch({
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   page.on('console', (msg) => {
+    if (msg.type() === 'log') console.log('[página] ' + msg.text());
     if (msg.type() === 'error' || msg.type() === 'warning') {
       problems.push(`[console.${msg.type()}] ${msg.text()}`);
     }
