@@ -83,6 +83,63 @@ try {
   const hidden = await page.evaluate(() => document.querySelector('.mc')?.hidden === true && !window.__mission.visible);
   if (hidden) console.log('Tecla T oculta el panel ✅');
   else problems.push('[check] la tecla T no ocultó el control de misión');
+
+  // Cámaras: clic en cada punto, la foto real se revela, se guarda la captura y Esc vuelve al juego.
+  await page.waitForFunction(() => window.__cameras?.markers.length === 4, null, { timeout: 10000 }).catch(() => {});
+  for (const key of ['mastcam', 'navcam', 'hazcam', 'watson']) {
+    const marker = await page.evaluate((k) => window.__cameras?.markers.find((m) => m.key === k), key);
+    if (!marker) {
+      problems.push(`[check] no hay punto para la cámara "${key}"`);
+      continue;
+    }
+    await page.mouse.move(marker.x, marker.y);
+    await page.mouse.down();
+    await page.mouse.up();
+    const ok = await page
+      .waitForFunction((k) => window.__photo?.camera === k && window.__photo.developed, key, { timeout: 30000 })
+      .then(() => true, () => false);
+    const photo = await page.evaluate(() => {
+      const img = document.querySelector('.pv-img');
+      return { src: img?.currentSrc, width: img?.naturalWidth, caption: document.querySelector('.pv-cap')?.innerText.replace(/\s+/g, ' ') };
+    });
+    if (ok && photo.width > 0 && photo.src?.startsWith('https://mars.nasa.gov/')) {
+      const shot = path.join(root, 'screenshots', `foto-${key}.png`);
+      await page.screenshot({ path: shot });
+      console.log(`Foto ✅ ${photo.caption} · ${photo.width} px · ${path.relative(root, shot)}`);
+    } else {
+      problems.push(`[check] la cámara "${key}" no abrió una foto real (${JSON.stringify(photo)})`);
+    }
+    await page.keyboard.press('Escape');
+    if (await page.evaluate(() => window.__photo.open)) problems.push('[check] Esc no cerró la foto');
+  }
+
+  // Ruedas: 6 piezas separadas, ruedan sin patinar y las esquinas se orientan para pivotar.
+  const drive = async (keys, steps) => {
+    for (const k of keys) await page.keyboard.down(k);
+    const result = await page.evaluate((steps) => {
+      const R = window.__rover, start = R.object.position.clone();
+      const spin0 = R.state.wheels.map((w) => w.spin.rotation.x);
+      for (let i = 0; i < steps; i++) R.update(1 / 60);
+      return {
+        meters: R.object.position.clone().sub(start).setY(0).length(),
+        rolled: R.state.wheels.map((w, i) => Math.abs(w.spin.rotation.x - spin0[i]) * w.radius),
+        angles: R.state.wheels.map((w) => (w.angle * 180) / Math.PI),
+      };
+    }, steps);
+    for (const k of keys) await page.keyboard.up(k);
+    return result;
+  };
+  const wheelCount = await page.evaluate(() => window.__rover.state.wheels.length);
+  const straight = await drive(['KeyW'], 240);
+  const worstSlip = Math.max(...straight.rolled.map((r) => Math.abs(r / straight.meters - 1)));
+  await drive([], 400); // frenar
+  const pivot = await drive(['KeyA'], 120);
+  const cornersTurned = pivot.angles.filter((a) => Math.abs(a) > 40).length;
+  if (wheelCount === 6 && worstSlip < 0.02 && cornersTurned === 4) {
+    console.log(`Ruedas ✅ 6 separadas, patinaje recto ${(worstSlip * 100).toFixed(2)} %, esquinas a ${pivot.angles.map((a) => a.toFixed(0)).join('/')}° al pivotar`);
+  } else {
+    problems.push(`[check] ruedas: ${wheelCount} piezas, patinaje ${(worstSlip * 100).toFixed(1)} %, ${cornersTurned}/4 esquinas orientadas`);
+  }
 } finally {
   await browser.close();
   if (server) await server.close();
