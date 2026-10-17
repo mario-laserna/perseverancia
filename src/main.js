@@ -9,6 +9,9 @@ import { addProvider } from './mission/telemetry.js';
 import { waypointsProvider, ephemerisProvider } from './mission/providers.js';
 import { MEASURES } from './mission/measures.js';
 import { createMissionPanel } from './mission/panel.js';
+import { createCameraMarkers } from './cameras/markers.js';
+import { createPhotoViewer } from './cameras/viewer.js';
+import { PHOTOS } from './cameras/photos.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -126,6 +129,16 @@ addProvider(waypointsProvider);
 addProvider(ephemerisProvider);
 createMissionPanel(MEASURES);
 
+// Cámaras de Percy: un punto que brilla en cada una; al hacer clic, una foto real de Marte.
+const viewer = createPhotoViewer({
+  photos: PHOTOS,
+  onOpen: () => cameraMarkers.setEnabled(false),
+  onClose: () => cameraMarkers.setEnabled(true),
+});
+const cameraMarkers = createCameraMarkers({
+  rover, camera, canvas: renderer.domElement, onShoot: (cam) => viewer.open(cam),
+});
+
 const clock = new THREE.Clock();
 const wind = new THREE.Vector3(1.2, 0.05, 0.4);
 function animate() {
@@ -134,6 +147,7 @@ function animate() {
 
   rover.update(dt);
   placeCamera(dt);
+  cameraMarkers.update(t);
 
   // El sol y su caja de sombras siguen al rover.
   sun.target.position.copy(rover.object.position);
