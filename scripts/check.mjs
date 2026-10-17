@@ -53,11 +53,36 @@ try {
   await page.waitForFunction(() => window.__sceneReady === true, null, { timeout: 30000 }).catch(() => {
     problems.push('[check] la escena no marcó window.__sceneReady en 30 s');
   });
+  // Control de misión: las 4 medidas tienen que llegar con un número real.
+  const EXPECTED = ['distance', 'elevation', 'tilt', 'lightTime'];
+  await page
+    .waitForFunction(
+      (keys) => keys.every((k) => Number.isFinite(window.__mission?.measures[k]?.value)),
+      EXPECTED,
+      { timeout: 30000 },
+    )
+    .catch(() => {});
+  const measures = await page.evaluate(() => window.__mission?.measures ?? {});
+  for (const key of EXPECTED) {
+    const m = measures[key];
+    if (m && Number.isFinite(m.value) && m.points > 0) {
+      console.log(`Medida ✅ ${m.name}: ${m.display} ${m.unit} (${m.provider}, ${m.points} puntos)`);
+    } else {
+      problems.push(`[check] la medida "${key}" no cargó un valor`);
+    }
+  }
+
   await page.waitForTimeout(3000);
 
   await mkdir(path.dirname(shotPath), { recursive: true });
   await page.screenshot({ path: shotPath });
   console.log(`Captura: ${path.relative(root, shotPath)}`);
+
+  // La tecla T oculta el panel.
+  await page.keyboard.press('KeyT');
+  const hidden = await page.evaluate(() => document.querySelector('.mc')?.hidden === true && !window.__mission.visible);
+  if (hidden) console.log('Tecla T oculta el panel ✅');
+  else problems.push('[check] la tecla T no ocultó el control de misión');
 } finally {
   await browser.close();
   if (server) await server.close();

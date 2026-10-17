@@ -5,6 +5,10 @@ import { createRocks } from './rocks.js';
 import { createSky, HORIZON_COLOR } from './sky.js';
 import { createMoons } from './moons.js';
 import { createRover } from './rover.js';
+import { addProvider } from './mission/telemetry.js';
+import { waypointsProvider, ephemerisProvider } from './mission/providers.js';
+import { MEASURES } from './mission/measures.js';
+import { createMissionPanel } from './mission/panel.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -116,6 +120,11 @@ function placeCamera(dt) {
   if (camera.position.y < minY) camera.position.y = minY;
 }
 window.__rover = rover;
+
+// Control de misión: se registran los proveedores y el panel pide cada medida.
+addProvider(waypointsProvider);
+addProvider(ephemerisProvider);
+createMissionPanel(MEASURES);
 
 const clock = new THREE.Clock();
 const wind = new THREE.Vector3(1.2, 0.05, 0.4);
