@@ -1,0 +1,516 @@
+<title>Mapa de Open MCT</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: una columna de lectura (~68ch) con el diagrama y las tablas a ancho completo; cuadrícula de consola de misión. */
+  :root {
+    --bg: #edf0f3;
+    --panel: #ffffff;
+    --ink: #18202b;
+    --muted: #586476;
+    --line: #c4cbd5;
+    --accent: #ad4326;        /* óxido de Marte: lo que pone Percy */
+    --accent-soft: #f7e3db;
+    --signal: #1d6aab;        /* azul telemetría: tiempo y peticiones */
+    --code-bg: #e3e8ee;
+    --f-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+    --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+    --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f141b; --panel: #171f29; --ink: #e2e7ed; --muted: #94a1b3; --line: #2d3947;
+      --accent: #e57c55; --accent-soft: #3a2119; --signal: #6aaee8; --code-bg: #1d2733;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f141b; --panel: #171f29; --ink: #e2e7ed; --muted: #94a1b3; --line: #2d3947;
+    --accent: #e57c55; --accent-soft: #3a2119; --signal: #6aaee8; --code-bg: #1d2733;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 17px;
+    line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 72px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 64px; }
+  .read { max-width: 68ch; }
+  section { display: grid; gap: 20px; min-width: 0; }
+
+  h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+  h2 { font-size: 2.1rem; font-weight: 600; letter-spacing: 0.01em; }
+  h3 { font-size: 1.35rem; font-weight: 600; }
+  p { margin: 0; }
+  .eyebrow {
+    font-family: var(--f-mono); font-size: 0.78rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  code, .ref { font-family: var(--f-mono); font-size: 0.86em; }
+  .ref { color: var(--signal); white-space: nowrap; }
+  a { color: var(--signal); }
+  a:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+  /* Portada */
+  header { display: grid; gap: 22px; padding-top: 8px; }
+  .lead {
+    font-family: var(--f-display); font-weight: 500; font-size: clamp(1.9rem, 4.4vw, 3.1rem);
+    line-height: 1.12; max-width: 30ch; text-wrap: balance;
+  }
+  .lead em { font-style: normal; color: var(--accent); }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--muted); font-size: 0.92rem; }
+
+  /* Diagrama */
+  figure { margin: 0; display: grid; gap: 14px; min-width: 0; }
+  .scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  .scroll svg { display: block; width: 100%; min-width: 900px; height: auto; }
+  figcaption { color: var(--muted); font-size: 0.95rem; max-width: 72ch; }
+  .key { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; white-space: nowrap; }
+  .sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--ink); vertical-align: middle; }
+  .sw.req { border-top: 2px dashed var(--muted); }
+  .sw.acc { width: 14px; height: 12px; border: 2px solid var(--accent); background: var(--accent-soft); border-radius: 2px; }
+
+  svg .bx { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+  svg .bx-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  svg .core { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  svg .t-title { fill: var(--ink); font-family: var(--f-body); font-weight: 700; font-size: 15px; }
+  svg .t-desc { fill: var(--muted); font-family: var(--f-body); font-size: 12.5px; }
+  svg .t-dir { fill: var(--muted); font-family: var(--f-mono); font-size: 10.5px; }
+  svg .t-ref { fill: var(--signal); font-family: var(--f-mono); font-size: 11.5px; font-weight: 600; }
+  svg .t-lbl { fill: var(--ink); font-family: var(--f-body); font-size: 12px; }
+  svg .t-lbl-m { fill: var(--muted); font-family: var(--f-mono); font-size: 10.5px; }
+  svg .t-gut { fill: var(--muted); font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; }
+  svg .t-core { fill: var(--muted); font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.06em; }
+  svg .ar { stroke: var(--ink); stroke-width: 1.6; fill: none; }
+  svg .ar-req { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+  svg .ar-time { stroke: var(--signal); stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+  svg .hd { fill: var(--ink); }
+  svg .hd-req { fill: var(--muted); }
+  svg .hd-time { fill: var(--signal); }
+  svg .plot-frame { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
+  svg .plot-grid { stroke: var(--line); stroke-width: 0.8; }
+  svg .plot-line { stroke: var(--accent); stroke-width: 2; fill: none; }
+
+  /* Tablas */
+  .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-family: var(--f-mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+  td code { white-space: nowrap; }
+
+  /* Piezas clave */
+  .pieces { display: grid; border-top: 1px solid var(--line); }
+  .piece {
+    display: grid; grid-template-columns: minmax(150px, 0.8fr) 2fr minmax(220px, 1.2fr);
+    gap: 10px 28px; padding-block: 20px; border-bottom: 1px solid var(--line);
+  }
+  .piece > * { min-width: 0; }
+  .piece .name { font-family: var(--f-display); font-size: 1.5rem; font-weight: 600; line-height: 1.15; }
+  .piece .name small { display: block; font-family: var(--f-mono); font-size: 0.72rem; color: var(--muted); font-weight: 400; letter-spacing: 0.04em; margin-top: 4px; }
+  .piece ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.86rem; }
+  .piece ul .ref { white-space: normal; overflow-wrap: anywhere; }
+  @media (max-width: 760px) { .piece { grid-template-columns: 1fr; } }
+
+  /* Percy */
+  .chain { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.92rem; }
+  .chain span { padding: 6px 10px; border: 1px solid var(--line); background: var(--panel); border-radius: 4px; }
+  .chain span.acc { border-color: var(--accent); background: var(--accent-soft); }
+  .chain i { font-style: normal; color: var(--muted); }
+  .steps { display: grid; gap: 28px; }
+  .step { display: grid; gap: 10px; min-width: 0; }
+  .step h3 .n { font-family: var(--f-mono); font-size: 0.9rem; color: var(--accent); margin-right: 10px; }
+  pre {
+    margin: 0; padding: 16px 18px; overflow-x: auto; background: var(--code-bg);
+    border-radius: 6px; font-family: var(--f-mono); font-size: 0.8rem; line-height: 1.55; color: var(--ink);
+  }
+  pre .c { color: var(--muted); }
+  .note { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; color: var(--ink); max-width: 68ch; }
+  .check { display: grid; gap: 8px; font-size: 0.92rem; }
+  .check li { margin-bottom: 6px; }
+  .ok { color: var(--signal); font-weight: 700; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">nasa/openmct · commit e09bfaf · 6 oct 2026 · versión 4.3.1</div>
+  <p class="lead">Open MCT es un tablero de control de misión que arranca vacío, al que le enchufas <em>plugins</em> que dicen qué medir y de dónde sacar los datos, para que él los dibuje en gráficas que siguen todas el mismo reloj.</p>
+  <div class="meta">
+    <span>Clonado en <code>~/codigo/openmct</code>, sin instalar dependencias ni cambiar nada</span>
+    <span>Todas las rutas son relativas a esa carpeta</span>
+  </div>
+</header>
+
+<section>
+  <div class="read" style="display:grid;gap:12px">
+    <h2>El mapa</h2>
+    <p>Arriba, lo que pasa una sola vez al arrancar: cada plugin se apunta en las listas del núcleo. Abajo, lo que se repite con cada medida: el dato sale del proveedor, la API de telemetría lo reparte, la serie del plot lo ordena y la GPU lo pinta.</p>
+  </div>
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 1130 690" role="img" aria-label="Diagrama de Open MCT. Al arrancar, index.html instala el plugin generador, que registra su proveedor en la lista de telemetría del núcleo, y el plugin Plot registra su vista. En cada medida, el proveedor entrega datos a la API de telemetría, que los pasa a la serie del plot; la serie los guarda en orden, los copia a un buffer y MctChart los dibuja con WebGL. El reloj del núcleo fija la ventana de tiempo que se pide al proveedor.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="hd" d="M0 0 L10 5 L0 10 z"/></marker>
+          <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="hd-req" d="M0 0 L10 5 L0 10 z"/></marker>
+          <marker id="aht" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="hd-time" d="M0 0 L10 5 L0 10 z"/></marker>
+        </defs>
+
+        <!-- Etiquetas de banda -->
+        <text class="t-gut" text-anchor="middle" transform="translate(36 76) rotate(-90)">MONTAJE</text>
+        <text class="t-gut" text-anchor="middle" transform="translate(36 233) rotate(-90)">NÚCLEO</text>
+        <text class="t-gut" text-anchor="middle" transform="translate(36 535) rotate(-90)">VIAJE DEL DATO</text>
+
+        <!-- Fila 1: montaje -->
+        <g><title>index.html:240</title>
+          <rect class="bx" x="80" y="30" width="300" height="92" rx="4"/>
+          <text class="t-title" x="94" y="56">index.html</text>
+          <text class="t-desc" x="94" y="75">instala plugins y llama a start()</text>
+          <text class="t-dir" x="94" y="96">raíz del repo</text>
+          <text class="t-ref" x="94" y="113">index.html:240</text>
+        </g>
+        <g><title>example/generator/plugin.js:166</title>
+          <rect class="bx-acc" x="440" y="30" width="300" height="92" rx="4"/>
+          <text class="t-title" x="454" y="56">Plugin generador</text>
+          <text class="t-desc" x="454" y="75">datos de ejemplo · aquí irá Percy</text>
+          <text class="t-dir" x="454" y="96">example/generator/</text>
+          <text class="t-ref" x="454" y="113">plugin.js:166</text>
+        </g>
+        <g><title>src/plugins/plot/plugin.js:80</title>
+          <rect class="bx" x="800" y="30" width="300" height="92" rx="4"/>
+          <text class="t-title" x="814" y="56">Plugin Plot</text>
+          <text class="t-desc" x="814" y="75">gráficas · ya viene instalado (MCT.js:285)</text>
+          <text class="t-dir" x="814" y="96">src/plugins/plot/</text>
+          <text class="t-ref" x="814" y="113">plugin.js:80</text>
+        </g>
+        <line class="ar" x1="380" y1="76" x2="438" y2="76" marker-end="url(#ah)"/>
+        <text class="t-lbl" x="409" y="68" text-anchor="middle">instala</text>
+
+        <!-- Fila 2: núcleo -->
+        <rect class="core" x="64" y="158" width="1052" height="150" rx="6"/>
+        <text class="t-core" x="80" y="182">CLASE MCT · src/MCT.js:77 · guarda las listas que rellenan los plugins</text>
+        <g><title>src/api/time/TimeContext.js:391</title>
+          <rect class="bx" x="80" y="196" width="300" height="92" rx="4"/>
+          <text class="t-title" x="94" y="222">Tiempo</text>
+          <text class="t-desc" x="94" y="241">ventana visible y reloj que avanza</text>
+          <text class="t-dir" x="94" y="262">src/api/time/</text>
+          <text class="t-ref" x="94" y="279">TimeContext.js:391</text>
+        </g>
+        <g><title>src/api/telemetry/TelemetryAPI.js:167</title>
+          <rect class="bx" x="440" y="196" width="300" height="92" rx="4"/>
+          <text class="t-title" x="454" y="222">Telemetría</text>
+          <text class="t-desc" x="454" y="241">lista de proveedores registrados</text>
+          <text class="t-dir" x="454" y="262">src/api/telemetry/</text>
+          <text class="t-ref" x="454" y="279">TelemetryAPI.js:167</text>
+        </g>
+        <g><title>src/ui/registries/ViewRegistry.js:77</title>
+          <rect class="bx" x="800" y="196" width="300" height="92" rx="4"/>
+          <text class="t-title" x="814" y="222">Vistas</text>
+          <text class="t-desc" x="814" y="241">qué pantalla abre cada objeto</text>
+          <text class="t-dir" x="814" y="262">src/ui/registries/</text>
+          <text class="t-ref" x="814" y="279">ViewRegistry.js:77</text>
+        </g>
+        <line class="ar" x1="590" y1="122" x2="590" y2="194" marker-end="url(#ah)"/>
+        <text class="t-lbl-m" x="598" y="146">addProvider</text>
+        <line class="ar" x1="950" y1="122" x2="950" y2="194" marker-end="url(#ah)"/>
+        <text class="t-lbl-m" x="958" y="146">addProvider</text>
+
+        <!-- Del núcleo al viaje -->
+        <line class="ar-time" x1="230" y1="288" x2="230" y2="397" marker-end="url(#aht)"/>
+        <text class="t-lbl" x="238" y="338">ventana start–end</text>
+        <text class="t-lbl-m" x="238" y="353">MctPlot.vue:648</text>
+        <line class="ar-req" x1="590" y1="288" x2="590" y2="397" marker-end="url(#ahr)"/>
+        <text class="t-lbl" x="598" y="338">busca quién sirve el objeto</text>
+        <text class="t-lbl-m" x="598" y="353">TelemetryAPI.js:206</text>
+        <line class="ar-req" x1="950" y1="288" x2="950" y2="397" marker-end="url(#ahr)"/>
+        <text class="t-lbl" x="958" y="338">la vista crea una serie</text>
+        <text class="t-lbl-m" x="958" y="353">SeriesCollection.js:85</text>
+
+        <!-- Fila 3: viaje, ida -->
+        <g><title>example/generator/GeneratorProvider.js:91 y :101</title>
+          <rect class="bx-acc" x="80" y="400" width="300" height="92" rx="4"/>
+          <text class="t-title" x="94" y="426">Proveedor</text>
+          <text class="t-desc" x="94" y="445">crea datos { utc, sin, cos }</text>
+          <text class="t-dir" x="94" y="466">example/generator/</text>
+          <text class="t-ref" x="94" y="483">GeneratorProvider.js:91 · :101</text>
+        </g>
+        <g><title>src/api/telemetry/TelemetryAPI.js:470 y :529</title>
+          <rect class="bx" x="440" y="400" width="300" height="92" rx="4"/>
+          <text class="t-title" x="454" y="426">API de telemetría</text>
+          <text class="t-desc" x="454" y="445">reparte y comparte suscripciones</text>
+          <text class="t-dir" x="454" y="466">src/api/telemetry/</text>
+          <text class="t-ref" x="454" y="483">TelemetryAPI.js:470 · :529</text>
+        </g>
+        <g><title>src/plugins/plot/configuration/PlotSeries.js:196</title>
+          <rect class="bx" x="800" y="400" width="300" height="92" rx="4"/>
+          <text class="t-title" x="814" y="426">Serie del plot</text>
+          <text class="t-desc" x="814" y="445">pide el pasado y se suscribe a lo nuevo</text>
+          <text class="t-dir" x="814" y="466">src/plugins/plot/configuration/</text>
+          <text class="t-ref" x="814" y="483">PlotSeries.js:196</text>
+        </g>
+        <line class="ar" x1="380" y1="432" x2="438" y2="432" marker-end="url(#ah)"/>
+        <text class="t-lbl" x="409" y="424" text-anchor="middle">datos</text>
+        <line class="ar-req" x1="440" y1="462" x2="382" y2="462" marker-end="url(#ahr)"/>
+        <text class="t-lbl" x="411" y="479" text-anchor="middle">pide</text>
+        <line class="ar" x1="740" y1="432" x2="798" y2="432" marker-end="url(#ah)"/>
+        <text class="t-lbl" x="769" y="424" text-anchor="middle">datos</text>
+        <line class="ar-req" x1="800" y1="462" x2="742" y2="462" marker-end="url(#ahr)"/>
+        <text class="t-lbl" x="771" y="479" text-anchor="middle">pide</text>
+
+        <!-- Fila 4: viaje, vuelta hacia la pantalla -->
+        <line class="ar" x1="950" y1="492" x2="950" y2="557" marker-end="url(#ah)"/>
+        <text class="t-lbl-m" x="958" y="529">addAll()</text>
+        <g><title>src/plugins/plot/configuration/PlotSeries.js:436</title>
+          <rect class="bx" x="800" y="560" width="300" height="110" rx="4"/>
+          <text class="t-title" x="814" y="586">Guardar en orden</text>
+          <text class="t-desc" x="814" y="605">mete cada punto en su sitio por hora</text>
+          <text class="t-dir" x="814" y="626">src/plugins/plot/configuration/</text>
+          <text class="t-ref" x="814" y="643">PlotSeries.js:436</text>
+        </g>
+        <g><title>src/plugins/plot/chart/MCTChartSeriesElement.js:108</title>
+          <rect class="bx" x="440" y="560" width="300" height="110" rx="4"/>
+          <text class="t-title" x="454" y="586">Preparar para la GPU</text>
+          <text class="t-desc" x="454" y="605">copia x, y a un Float32Array</text>
+          <text class="t-dir" x="454" y="626">src/plugins/plot/chart/</text>
+          <text class="t-ref" x="454" y="643">MCTChartSeriesElement.js:108</text>
+        </g>
+        <g><title>src/plugins/plot/chart/MctChart.vue:768 y src/plugins/plot/draw/DrawWebGL.js:204</title>
+          <rect class="bx" x="80" y="560" width="300" height="110" rx="4"/>
+          <text class="t-title" x="94" y="586">Dibujar la línea</text>
+          <text class="t-desc" x="94" y="605">la GPU traza los puntos</text>
+          <text class="t-dir" x="94" y="626">src/plugins/plot/</text>
+          <text class="t-ref" x="94" y="643">chart/MctChart.vue:768</text>
+          <text class="t-ref" x="94" y="660">draw/DrawWebGL.js:204</text>
+          <rect class="plot-frame" x="262" y="584" width="108" height="70" rx="2"/>
+          <line class="plot-grid" x1="262" y1="619" x2="370" y2="619"/>
+          <polyline class="plot-line" points="268,619 274,610 280,602.6 286,598.1 292,597.1 298,600 304,606.2 310,614.6 316,623.8 322,632.1 328,638.2 334,640.9 340,639.8 346,635.1 352,627.6 358,618.6 364,609.8"/>
+        </g>
+        <line class="ar" x1="800" y1="604" x2="742" y2="604" marker-end="url(#ah)"/>
+        <text class="t-lbl-m" x="771" y="596" text-anchor="middle">'add'</text>
+        <line class="ar" x1="440" y1="604" x2="382" y2="604" marker-end="url(#ah)"/>
+        <text class="t-lbl" x="411" y="596" text-anchor="middle">buffer</text>
+      </svg>
+    </div>
+    <figcaption>
+      <span class="key"><span class="sw"></span>registro o datos</span>
+      <span class="key"><span class="sw req"></span>petición</span>
+      <span class="key"><span class="sw acc"></span>lo que cambia con Percy</span>
+      <br>
+      La serie del plot pide hacia la izquierda y los datos vuelven hacia la derecha. La línea azul es la ventana de tiempo: el plot la lee del reloj y viaja en la petición hasta el proveedor como <code>start</code> y <code>end</code>. En tiempo real el reloj avanza cada 100 ms, la ventana se desplaza y cada punto nuevo cae dentro de ella y se dibuja.
+    </figcaption>
+  </figure>
+
+  <div class="read" style="display:grid;gap:10px">
+    <h3>Un dato, tal como viaja</h3>
+    <p>Un dato es un objeto plano de JavaScript. El generador de ejemplo crea uno así en <span class="ref">example/generator/generatorWorker.js:173</span>:</p>
+  </div>
+  <pre>{ utc: 1792256400000, sin: 0.42, cos: 0.91, ... }   <span class="c">// utc = milisegundos; el resto, valores medidos</span></pre>
+  <p class="read">Open MCT no sabe qué campo va en cada eje hasta que lee los metadatos. Ahí <code>utc</code> lleva la pista <code>domain</code> (eje X) y <code>sin</code> lleva <code>range</code> (eje Y). La gráfica usa el primer <code>range</code> como Y (<span class="ref">src/plugins/plot/configuration/PlotSeries.js:118</span>) y saca el número con <code>datum[source]</code> (<span class="ref">src/api/telemetry/TelemetryValueFormatter.js:118</span>).</p>
+</section>
+
+<section>
+  <h2>Las 5 piezas clave</h2>
+  <div class="pieces">
+    <div class="piece">
+      <div class="name">El núcleo<small>clase MCT</small></div>
+      <p>Hay un único objeto <code>openmct</code> con listas para todo: tipos, objetos, telemetría, tiempo y vistas. Por sí solo no sabe nada de ningún rover. Al crearse ya instala los plugins básicos, como Plot y la tabla.</p>
+      <ul>
+        <li><span class="ref">openmct.js:35</span> crea la instancia única</li>
+        <li><span class="ref">src/MCT.js:77</span> la clase</li>
+        <li><span class="ref">src/MCT.js:183</span> crea la API de telemetría</li>
+        <li><span class="ref">src/MCT.js:411</span> <code>start()</code> monta la pantalla</li>
+      </ul>
+    </div>
+    <div class="piece">
+      <div class="name">El plugin<small>una función install(openmct)</small></div>
+      <p>Un plugin es una función que recibe <code>openmct</code> y se apunta en sus listas con <code>addType</code>, <code>addProvider</code> o <code>addRoot</code>. <code>openmct.install(p)</code> solo ejecuta <code>p(openmct)</code>. Casi todo Open MCT, gráficas incluidas, está hecho de plugins.</p>
+      <ul>
+        <li><span class="ref">src/MCT.js:435</span> <code>install(plugin)</code></li>
+        <li><span class="ref">src/plugins/plot/plugin.js:34</span> ejemplo real</li>
+        <li><span class="ref">src/plugins/plugins.js:133</span> catálogo de plugins</li>
+        <li><span class="ref">API.md:211</span> la guía oficial</li>
+      </ul>
+    </div>
+    <div class="piece">
+      <div class="name">Los metadatos<small>telemetry.values</small></div>
+      <p>Es la ficha técnica de cada medida: cómo se llama cada campo, en qué unidad viene y si va en el eje X (<code>domain</code>) o en el Y (<code>range</code>). Sin ficha, la gráfica no sabe qué dibujar. Puede ir dentro del propio objeto.</p>
+      <ul>
+        <li><span class="ref">src/api/telemetry/TelemetryMetadataManager.js:100</span> <code>valuesForHints</code></li>
+        <li><span class="ref">src/api/telemetry/DefaultMetadataProvider.js:50</span> lee <code>domainObject.telemetry</code></li>
+        <li><span class="ref">example/generator/GeneratorMetadataProvider.js:146</span> ejemplo</li>
+        <li><span class="ref">API.md:457</span> todos los campos</li>
+      </ul>
+    </div>
+    <div class="piece">
+      <div class="name">El proveedor<small>request · subscribe</small></div>
+      <p>Es el enchufe con la fuente de datos real. Tiene dos métodos. <code>request</code> devuelve los datos de una ventana pasada (<code>start</code>–<code>end</code>) y <code>subscribe</code> llama a una función con cada dato nuevo. Si diez vistas miran lo mismo, Open MCT se suscribe al proveedor una sola vez.</p>
+      <ul>
+        <li><span class="ref">src/api/telemetry/TelemetryAPI.js:167</span> <code>addProvider</code></li>
+        <li><span class="ref">src/api/telemetry/TelemetryAPI.js:529</span> <code>subscribe</code></li>
+        <li><span class="ref">src/api/telemetry/TelemetryAPI.js:551</span> suscripción compartida</li>
+        <li><span class="ref">API.md:532</span> qué debe implementar</li>
+      </ul>
+    </div>
+    <div class="piece">
+      <div class="name">El tiempo<small>reloj y ventana</small></div>
+      <p>Todas las vistas comparten un reloj y una ventana visible. En modo fijo la ventana no se mueve. En tiempo real el reloj local avanza cada 100 ms y la ventana avanza con él. Por eso varias gráficas abiertas a la vez van sincronizadas.</p>
+      <ul>
+        <li><span class="ref">src/api/time/TimeContext.js:391</span> <code>tick</code></li>
+        <li><span class="ref">src/plugins/utcTimeSystem/LocalClock.js:57</span> reloj local</li>
+        <li><span class="ref">src/plugins/plot/MctPlot.vue:648</span> el plot lee la ventana</li>
+        <li><span class="ref">API.md:801</span> la guía del tiempo</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Cómo conectamos Percy</h2>
+  <p class="read">Percy ya calcula en cada fotograma su velocidad, su rumbo y su posición. Para verlos en Open MCT hay que sacar esos números de la página del rover y escribir un plugin que haga el papel del generador de ejemplo. Es decir, las dos cajas de color óxido del mapa.</p>
+
+  <div class="chain" aria-label="Recorrido propuesto">
+    <span class="acc">Página del rover <code>localhost:5173/</code></span><i>→ cada 100 ms →</i>
+    <span>BroadcastChannel <code>'percy'</code></span><i>→</i>
+    <span class="acc">Plugin Percy en <code>/control.html</code></span><i>→</i>
+    <span>API de telemetría</span><i>→</i>
+    <span>gráfica</span>
+  </div>
+  <p class="read">Propongo dos pestañas servidas por el mismo Vite de tu proyecto: el rover en una y Open MCT en otra. Al tener el mismo origen pueden hablar con <code>BroadcastChannel</code>, que viene en el navegador. Así no hace falta servidor ni WebSocket, y la separación se parece a la de una sala de control real.</p>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Dato de Percy</th><th>De dónde sale hoy</th><th>Campo enviado</th><th>Eje</th></tr></thead>
+      <tbody>
+        <tr><td>Hora</td><td><code>Date.now()</code> al enviar</td><td><code>utc</code></td><td>X · <code>domain</code></td></tr>
+        <tr><td>Velocidad (m/s)</td><td><code>rover.state.speed</code> · <span class="ref">src/rover.js:94</span></td><td><code>velocidad</code></td><td>Y · <code>range</code></td></tr>
+        <tr><td>Rumbo (°)</td><td><code>rover.state.heading</code> en radianes · <span class="ref">src/rover.js:95</span></td><td><code>rumbo</code></td><td>Y · <code>range</code></td></tr>
+        <tr><td>Altura (m)</td><td><code>rover.object.position.y</code> · <span class="ref">src/rover.js:100</span></td><td><code>altura</code></td><td>Y · <code>range</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="read" style="color:var(--muted);font-size:0.92rem">La velocidad máxima del simulador es 2,5 m/s, muy por encima de los 4,2 cm/s del Perseverance real (<span class="ref">src/rover.js:9</span>). La gráfica mostrará la del simulador.</p>
+
+  <div class="steps">
+    <div class="step">
+      <h3><span class="n">paso 1</span>Percy emite una muestra cada 100 ms</h3>
+      <p class="read">En <code>src/main.js</code>, dentro de <code>animate()</code> y justo después de <code>rover.update(dt)</code> (<span class="ref">src/main.js:126</span>). La variable <code>t</code> ya existe en la línea 124.</p>
+<pre>const canal = new BroadcastChannel('percy');   <span class="c">// fuera de animate()</span>
+let ultimoEnvio = 0;
+
+<span class="c">// dentro de animate(), después de rover.update(dt):</span>
+if (t - ultimoEnvio &gt;= 0.1) {
+  ultimoEnvio = t;
+  const grados = (rover.state.heading * 180) / Math.PI;
+  canal.postMessage({
+    utc: Date.now(),
+    velocidad: rover.state.speed,
+    rumbo: ((grados % 360) + 360) % 360,
+    altura: rover.object.position.y,
+  });
+}</pre>
+    </div>
+
+    <div class="step">
+      <h3><span class="n">paso 2</span>El plugin Percy</h3>
+      <p class="read">Un archivo nuevo, <code>src/percy-plugin.js</code>. Hace cuatro cosas: crea una carpeta «Percy» en el árbol (<code>addRoot</code>), entrega sus tres medidas con su ficha (<code>objects.addProvider</code>), declara el tipo y registra el proveedor de telemetría. Cada medida lee su propio campo del mismo mensaje gracias a <code>source</code>.</p>
+<pre>const MEDIDAS = [
+  { key: 'velocidad', nombre: 'Velocidad', unidad: 'm/s' },
+  { key: 'rumbo', nombre: 'Rumbo', unidad: '°' },
+  { key: 'altura', nombre: 'Altura', unidad: 'm' },
+];
+
+export default function PercyPlugin() {
+  return function install(openmct) {
+    const canal = new BroadcastChannel('percy');
+    const historial = [];            <span class="c">// lo recibido desde que se abrió la pestaña</span>
+    const oyentes = new Set();
+    canal.onmessage = ({ data }) =&gt; {
+      historial.push(data);
+      oyentes.forEach((cb) =&gt; cb(data));
+    };
+
+    openmct.types.addType('percy.medida', { name: 'Medida de Percy', cssClass: 'icon-telemetry' });
+    openmct.objects.addRoot({ namespace: 'percy', key: 'rover' });
+    openmct.objects.addProvider('percy', {
+      get(id) {
+        if (id.key === 'rover') {
+          return Promise.resolve({
+            identifier: id, name: 'Percy', type: 'folder',
+            composition: MEDIDAS.map((m) =&gt; ({ namespace: 'percy', key: m.key })),
+          });
+        }
+        const m = MEDIDAS.find((m) =&gt; m.key === id.key);
+        return Promise.resolve({
+          identifier: id, name: m.nombre, type: 'percy.medida',
+          telemetry: { values: [
+            { key: 'utc', name: 'Hora', format: 'utc', hints: { domain: 1 } },
+            { key: 'value', source: m.key, name: m.nombre, unit: m.unidad, hints: { range: 1 } },
+          ] },
+        });
+      },
+    });
+
+    openmct.telemetry.addProvider({
+      supportsSubscribe: (obj) =&gt; obj.type === 'percy.medida',
+      subscribe(obj, callback) {
+        oyentes.add(callback);
+        return () =&gt; oyentes.delete(callback);
+      },
+      supportsRequest: (obj) =&gt; obj.type === 'percy.medida',
+      request: (obj, { start, end }) =&gt;
+        Promise.resolve(historial.filter((p) =&gt; p.utc &gt;= start &amp;&amp; p.utc &lt;= end)),
+    });
+  };
+}</pre>
+    </div>
+
+    <div class="step">
+      <h3><span class="n">paso 3</span>La página de control</h3>
+      <p class="read">Hacen falta <code>control.html</code>, con un <code>&lt;script type="module" src="/src/control.js"&gt;</code>, y <code>src/control.js</code>. Este segundo archivo copia lo justo de <span class="ref">index.html:102</span>–<span class="ref">index.html:240</span>. La opción «Tiempo real» usa el reloj <code>'local'</code>, como hace allí la opción Realtime.</p>
+<pre>import openmct from 'openmct';
+import PercyPlugin from './percy-plugin.js';
+
+openmct.install(openmct.plugins.LocalStorage());
+openmct.install(openmct.plugins.MyItems());
+openmct.install(openmct.plugins.UTCTimeSystem());
+openmct.install(openmct.plugins.Conductor({
+  menuOptions: [{
+    name: 'Tiempo real', timeSystem: 'utc', clock: 'local',
+    clockOffsets: { start: -5 * 60 * 1000, end: 5 * 1000 },
+  }],
+}));
+openmct.install(PercyPlugin());
+openmct.start();</pre>
+    </div>
+
+    <div class="step">
+      <h3><span class="n">paso 4</span>Probarlo</h3>
+      <p class="read">Arrancas <code>npm run dev</code> y abres dos pestañas: <code>localhost:5173/</code> para conducir con WASD y <code>localhost:5173/control.html</code> para el control. En el árbol aparece «Percy» con Velocidad, Rumbo y Altura. Al abrir Velocidad, la gráfica sube cuando pulsas W y baja cuando sueltas.</p>
+    </div>
+  </div>
+
+  <p class="note">Esto es un boceto que no he ejecutado. Para usarlo hace falta <code>npm install openmct</code> en <code>perseverancia</code>, y no lo he hecho porque pediste no instalar nada. El historial solo guarda lo recibido desde que abres la pestaña de control. Si quieres ver trayectos de ayer, el siguiente paso es un pequeño servidor que guarde las muestras y responda a <code>request</code>.</p>
+</section>
+
+<section>
+  <h2>Comprobación</h2>
+  <div class="read check" id="comprobacion">
+    <p>Se abrieron en su línea todas las referencias <code>archivo:línea</code> de esta página, en el commit e09bfaf de Open MCT y en el estado actual de <code>perseverancia</code>. Después se sortearon tres y se volvieron a abrir:</p>
+    <ul id="azar">
+      <li><span class="ok">Coincide.</span> <span class="ref">src/plugins/plot/configuration/PlotSeries.js:196</span> → <code>async fetch(options) {</code></li>
+      <li><span class="ok">Coincide.</span> <span class="ref">src/plugins/plot/plugin.js:34</span> → <code>return function install(openmct) {</code></li>
+      <li><span class="ok">Coincide.</span> <span class="ref">src/rover.js:9</span> (Percy) → <code>const MAX_SPEED = 2.5; // m/s, muy acelerado…</code></li>
+    </ul>
+  </div>
+</section>
+
+</div>
